@@ -30,7 +30,14 @@ import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
 import com.android.settingslib.widget.UsageProgressBarPreference
 import java.text.NumberFormat
 
-class StorageInfoFragment(private var diagnostics: StorageInfo) : PreferenceFragmentCompat() {
+class StorageInfoFragment : PreferenceFragmentCompat() {
+    private val diagnostics: StorageInfo by lazy {
+        val bytes = requireNotNull(arguments?.getByteArray(ARG_STORAGE_INFO)) {
+            "Missing storage diagnostics"
+        }
+        StorageInfo.parseFrom(bytes)
+    }
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.storage_preferences, rootKey)
 
@@ -56,6 +63,16 @@ class StorageInfoFragment(private var diagnostics: StorageInfo) : PreferenceFrag
                 )
             it.summary =
                 getString(R.string.storage_total_capacity_summary_fmt, desc.value, desc.units)
+        }
+    }
+
+    companion object {
+        private const val ARG_STORAGE_INFO = "storage_info"
+
+        fun newInstance(diagnostics: StorageInfo) = StorageInfoFragment().apply {
+            arguments = Bundle().apply {
+                putByteArray(ARG_STORAGE_INFO, diagnostics.toByteArray())
+            }
         }
     }
 }
@@ -85,7 +102,7 @@ class StorageActivity : CollapsingToolbarBaseActivity() {
             val diagnostics = readStorageInfo()
             supportFragmentManager.commit {
                 setReorderingAllowed(true)
-                add(R.id.fragment_container_view, StorageInfoFragment(diagnostics))
+                add(R.id.fragment_container_view, StorageInfoFragment.newInstance(diagnostics))
             }
         }
     }

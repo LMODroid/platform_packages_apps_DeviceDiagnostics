@@ -43,8 +43,15 @@ fun legacyHealthToStringId(value: Int): Int {
     }
 }
 
-class BatteryInfoFragment(private val diagnostics: BatteryInfo, private val launchLevel: Int) :
-    PreferenceFragmentCompat() {
+class BatteryInfoFragment : PreferenceFragmentCompat() {
+    private val diagnostics: BatteryInfo by lazy {
+        arguments?.getByteArray(ARG_BATTERY_INFO)?.let(BatteryInfo::parseFrom)
+            ?: BatteryInfo.getDefaultInstance()
+    }
+
+    private val launchLevel: Int
+        get() = arguments?.getInt(ARG_LAUNCH_LEVEL) ?: 0
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.battery_preferences, rootKey)
 
@@ -117,6 +124,18 @@ class BatteryInfoFragment(private val diagnostics: BatteryInfo, private val laun
             }
         }
     }
+
+    companion object {
+        private const val ARG_BATTERY_INFO = "battery_info"
+        private const val ARG_LAUNCH_LEVEL = "launch_level"
+
+        fun newInstance(diagnostics: BatteryInfo, launchLevel: Int) = BatteryInfoFragment().apply {
+            arguments = Bundle().apply {
+                putByteArray(ARG_BATTERY_INFO, diagnostics.toByteArray())
+                putInt(ARG_LAUNCH_LEVEL, launchLevel)
+            }
+        }
+    }
 }
 
 class BatteryHealthPreference(context: Context, attrs: AttributeSet) :
@@ -143,7 +162,10 @@ class BatteryActivity : CollapsingToolbarBaseActivity() {
             val launchLevel = readLaunchLevel()
             supportFragmentManager.commit {
                 setReorderingAllowed(true)
-                add(R.id.fragment_container_view, BatteryInfoFragment(diagnostics, launchLevel))
+                add(
+                    R.id.fragment_container_view,
+                    BatteryInfoFragment.newInstance(diagnostics, launchLevel),
+                )
             }
         }
     }
