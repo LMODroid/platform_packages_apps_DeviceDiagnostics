@@ -41,10 +41,13 @@ import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
 import com.android.settingslib.qrcode.QrCamera
 import com.android.settingslib.widget.LayoutPreference
 
-class QrCodeScanFragment(private val callbacks: Callbacks) :
+class QrCodeScanFragment :
     TextureView.SurfaceTextureListener, QrCamera.ScannerCallback, PreferenceFragmentCompat() {
     private var textureView: TextureView? = null
     private var mCamera: QrCamera? = null
+
+    private val callbacks: Callbacks
+        get() = requireActivity() as Callbacks
 
     interface Callbacks {
         fun isQrCodeValid(qrCode: String?): Boolean
@@ -131,7 +134,7 @@ class QrCodeScanFragment(private val callbacks: Callbacks) :
 
 class QrCodeScanActivity :
     CollapsingToolbarBaseActivity(), QrCodeScanFragment.Callbacks, BluetoothClient.ScanListener {
-    private var mFragment = QrCodeScanFragment(this)
+    private lateinit var mFragment: QrCodeScanFragment
     private var bluetoothClient: BluetoothClient? = null
 
     private val permissions =
@@ -150,6 +153,10 @@ class QrCodeScanActivity :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mFragment =
+            supportFragmentManager.findFragmentById(R.id.fragment_container_view)
+                as? QrCodeScanFragment
+                ?: QrCodeScanFragment()
         setContentView(R.layout.activity_one_fragment)
         setTitle(R.string.evaluation_mode_title)
 
@@ -162,9 +169,12 @@ class QrCodeScanActivity :
     }
 
     private fun onPermissionsGranted() {
+        if (mFragment.isAdded) {
+            return
+        }
         supportFragmentManager.commit {
             setReorderingAllowed(true)
-            add(R.id.fragment_container_view, mFragment)
+            add(R.id.fragment_container_view, mFragment, FRAGMENT_TAG)
         }
     }
 
@@ -208,5 +218,9 @@ class QrCodeScanActivity :
 
         val bt = ApplicationInterface.app.getBluetoothClient()
         bt.reset()
+    }
+
+    private companion object {
+        const val FRAGMENT_TAG = "QrCodeScanFragment"
     }
 }
